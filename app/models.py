@@ -1,12 +1,16 @@
+import uuid
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship, declarative_base
 
 Base = declarative_base()
 
+
 class Researcher(Base):
     __tablename__ = "researchers"
 
     id = Column(Integer, primary_key=True, index=True)
+    # Secure string token used by the frontend for safe routing and profile updates
+    uuid = Column(String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()), index=True)
     full_name = Column(String)
     job_title = Column(String)
     profile_desc = Column(Text)
@@ -21,15 +25,16 @@ class Researcher(Base):
     skills = Column(Text)
     dept_name = Column(String)
     faculty_name = Column(String)
-    profile_photo = Column(Text)  # We'll store the photo as a base64 string
-    dept_logo = Column(Text)      # Store the logo as a base64 string
+    profile_photo = Column(Text)  # Stores local file path reference string
+    dept_logo = Column(Text)  # Stores local file path reference string
     created_at = Column(DateTime, server_default=func.now())
 
-    # These define relationships to other tables (not columns in this table)
+    # One-to-Many cascade relationships to related entities
     experiences = relationship("Experience", back_populates="researcher", cascade="all, delete-orphan")
     educations = relationship("Education", back_populates="researcher", cascade="all, delete-orphan")
     publications = relationship("Publication", back_populates="researcher", cascade="all, delete-orphan")
     optional_sections = relationship("OptionalSection", back_populates="researcher", cascade="all, delete-orphan")
+
 
 class Experience(Base):
     __tablename__ = "experiences"
@@ -41,14 +46,16 @@ class Experience(Base):
     description = Column(Text)
     researcher = relationship("Researcher", back_populates="experiences")
 
+
 class Education(Base):
     __tablename__ = "educations"
     id = Column(Integer, primary_key=True, index=True)
     researcher_id = Column(Integer, ForeignKey("researchers.id", ondelete="CASCADE"))
     degree = Column(String)
     institution = Column(String)
-    details = Column(Text)  # This stores the 'year' and other details
+    details = Column(Text)
     researcher = relationship("Researcher", back_populates="educations")
+
 
 class Publication(Base):
     __tablename__ = "publications"
@@ -60,13 +67,14 @@ class Publication(Base):
     journal = Column(String, nullable=True)
     doi = Column(String, nullable=True)
     source = Column(String, nullable=True)
-    research_fields = Column(String, nullable=True)   # JSON string (legacy)
-    main_field = Column(String, nullable=True)        # NEW
-    subfield = Column(String, nullable=True)          # NEW
+    research_fields = Column(String, nullable=True)
+    main_field = Column(String, nullable=True)
+    subfield = Column(String, nullable=True)
     citation_count = Column(Integer, nullable=True)
     imported_at = Column(DateTime, server_default=func.now())
     researcher = relationship("Researcher", back_populates="publications")
-    
+
+
 class OptionalSection(Base):
     __tablename__ = "optional_sections"
     id = Column(Integer, primary_key=True, index=True)
